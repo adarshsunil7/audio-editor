@@ -76,6 +76,18 @@ const FileInput = styled.input`
   display: none;
 `;
 
+const FileInput2 = styled.input`
+  display: none;
+`;
+
+const MergeContainer = styled.div`
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(0, 217, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 217, 255, 0.3);
+`;
+
 const FormatSelect = styled.select`
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
@@ -251,6 +263,7 @@ function formatTime(seconds) {
 
 export default function App() {
   const [file, setFile] = useState(null);
+  const [file2, setFile2] = useState(null);
   const [audioInfo, setAudioInfo] = useState(null);
   const [waveform, setWaveform] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -295,6 +308,38 @@ export default function App() {
       
       const waveformData = await api.getWaveform(selectedFile);
       setWaveform(waveformData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleFileSelect2 = async (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    setFile2(selectedFile);
+  };
+  
+  const handleMerge = async () => {
+    if (!file || !file2) {
+      setError('Please select two audio files to merge');
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const result = await api.mergeAudio([file, file2], outputFormat);
+      setSuccess(`Audio merged! Duration: ${formatDuration(result.duration)}`);
+      
+      const downloadUrl = api.getDownloadUrl(result.output_file);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `merged_audio.${outputFormat}`;
+      link.click();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -574,7 +619,6 @@ export default function App() {
               accept="audio/*"
               onChange={handleFileSelect}
             />
-            
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
               <p style={{ color: '#8b8b9e', marginBottom: '1rem' }}>Or create a test tone</p>
               <Button onClick={handleCreateTestTone} disabled={loading}>
@@ -583,6 +627,29 @@ export default function App() {
             </div>
           </div>
         )}
+        
+        <MergeContainer>
+          <p style={{ color: '#8b8b9e', marginBottom: '1rem', textAlign: 'center' }}>
+            Merge two audio files
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.5rem', border: '2px dashed rgba(0, 217, 255, 0.3)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(0, 217, 255, 0.05)' }}>
+              <div style={{ fontSize: '2rem' }}>🎵</div>
+              <div style={{ color: '#8b8b9e' }}>{file ? file.name : 'Select First File'}</div>
+              <input type="file" accept="audio/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.5rem', border: '2px dashed rgba(0, 217, 255, 0.3)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(0, 217, 255, 0.05)' }}>
+              <div style={{ fontSize: '2rem' }}>🎵</div>
+              <div style={{ color: '#8b8b9e' }}>{file2 ? file2.name : 'Select Second File'}</div>
+              <input type="file" accept="audio/*" onChange={handleFileSelect2} style={{ display: 'none' }} />
+            </label>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <Button onClick={handleMerge} disabled={loading || !file || !file2}>
+              Merge Files
+            </Button>
+          </div>
+        </MergeContainer>
         
         {file && audioInfo && (
           <div>
